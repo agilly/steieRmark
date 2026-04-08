@@ -27,12 +27,21 @@ wasserschutz <- read_layer("wasserschutzgebiete_stmk") |>
   st_simplify(preserveTopology = TRUE, dTolerance = 0.001) |>
   (\(x) x[st_geometry_type(x) %in% c("POLYGON", "MULTIPOLYGON"), ])()
 
+hochschwab <- st_read("hochschwab.gpkg", quiet = TRUE)
+
 # ---------------------------------------------------------------------------
 # Gemeindegrenzen + Hauptorte for Bruck-Mürzzuschlag
 # ---------------------------------------------------------------------------
 
+gemeinden_keep <- c(
+  # Bruck-Mürzzuschlag (subset)
+  "Aflenz", "Thörl", "Turnau", "Mariazell", "Tragöß-Sankt Katharein",
+  # Additional Gemeinden
+  "Wildalpen", "Landl", "Eisenerz", "Vordernberg", "Trofaiach"
+)
+
 bruck <- st_as_sf(gadm("AUT", level = 3, path = Sys.getenv("GADM_PATH", tempdir()))) |>
-  (\(x) x[x$GID_2 == "AUT.6.1_2", ])() |>
+  (\(x) x[x$NAME_3 %in% gemeinden_keep, ])() |>
   st_transform(4326)
 
 ho_all    <- st_read(
@@ -141,8 +150,9 @@ layers <- lapply(layers, function(l) {
 
 layer_labels <- sapply(layers, `[[`, "label")
 
-lbl_gemeinden <- swatch("#222222", "Gemeindegrenzen")
-lbl_hauptorte <- swatch("#e63946", "Hauptorte", shape = "circle")
+lbl_gemeinden  <- swatch("#222222", "Gemeindegrenzen")
+lbl_hauptorte  <- swatch("#e63946", "Hauptorte", shape = "circle")
+lbl_hochschwab <- swatch("#7a5c3a", "AVE Hochschwab")
 
 # ---------------------------------------------------------------------------
 # UI — full-screen map, no chrome
@@ -203,6 +213,17 @@ server <- function(input, output, session) {
       )
     )
 
+    m <- addPolygons(
+      m,
+      data        = hochschwab,
+      group       = lbl_hochschwab,
+      color       = "#7a5c3a",
+      fill        = FALSE,
+      weight      = 1.2,
+      opacity     = 1,
+      dashArray   = "6 6"
+    )
+
     m <- addCircleMarkers(
       m,
       data        = hauptorte_main,
@@ -223,7 +244,7 @@ server <- function(input, output, session) {
     m |>
       addLayersControl(
         baseGroups    = c("CartoDB Light", "OpenStreetMap"),
-        overlayGroups = c(layer_labels, lbl_gemeinden, lbl_hauptorte),
+        overlayGroups = c(layer_labels, lbl_gemeinden, lbl_hauptorte, lbl_hochschwab),
         options       = layersControlOptions(collapsed = FALSE)
       ) |>
       addScaleBar(position = "bottomleft") |>

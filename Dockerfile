@@ -15,6 +15,7 @@ WORKDIR /srv/shiny
 COPY app.R .
 COPY nature/ nature/
 COPY STATISTIK_AUSTRIA_ORT_MP_20250101.zip .
+COPY hochschwab.gpkg .
 
 EXPOSE 3838
 
